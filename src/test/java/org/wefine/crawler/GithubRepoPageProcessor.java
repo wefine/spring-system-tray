@@ -1,14 +1,17 @@
 package org.wefine.crawler;
 
+import org.apache.commons.io.Charsets;
+import org.apache.commons.io.IOUtils;
 import us.codecraft.webmagic.Page;
 import us.codecraft.webmagic.Site;
 import us.codecraft.webmagic.Spider;
 import us.codecraft.webmagic.processor.PageProcessor;
 
-import java.net.InetSocketAddress;
-import java.net.Proxy;
-import java.net.ProxySelector;
-import java.net.URI;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.*;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.Iterator;
 import java.util.List;
 
@@ -33,28 +36,16 @@ public class GithubRepoPageProcessor implements PageProcessor {
         return site;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         System.setProperty("java.net.useSystemProxies", "true");
+
+        InputStream in = new URL( "http://commons.apache.org" ).openStream();
         try {
-            List<Proxy> l = ProxySelector.getDefault().select(
-                    new URI("http://www.bing.com/"));
-
-            for (Iterator<Proxy> iter = l.iterator(); iter.hasNext();) {
-                Proxy proxy = iter.next();
-                System.out.println("proxy hostname : " + proxy.type());
-                InetSocketAddress addr = (InetSocketAddress) proxy.address();
-
-                if (addr == null) {
-                    System.out.println("No Proxy");
-                } else {
-                    System.out.println("proxy hostname : " + addr.getHostName());
-                    System.out.println("proxy port : " + addr.getPort());
-                }
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
+            System.out.println( IOUtils.toString( in, StandardCharsets.UTF_8) );
+        } finally {
+            IOUtils.closeQuietly(in);
         }
 
-        Spider.create(new GithubRepoPageProcessor()).addUrl("https://github.com/wefine").thread(5).run();
+//        Spider.create(new GithubRepoPageProcessor()).addUrl("https://github.com/wefine").thread(5).run();
     }
 }

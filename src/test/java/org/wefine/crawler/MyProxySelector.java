@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
 
 public class MyProxySelector extends ProxySelector {
     // Keep a reference on the previous default
@@ -45,12 +47,32 @@ public class MyProxySelector extends ProxySelector {
         // Save the previous default
         defsel = def;
 
+        System.setProperty("java.net.useSystemProxies", "true");
+        try {
+            List<Proxy> l = ProxySelector.getDefault().select(
+                    new URI("http://www.bing.com/"));
+
+            for (Iterator<Proxy> iter = l.iterator(); iter.hasNext();) {
+                Proxy proxy = iter.next();
+                System.out.println("proxy hostname : " + proxy.type());
+                InetSocketAddress addr = (InetSocketAddress) proxy.address();
+
+                if (addr == null) {
+                    System.out.println("No Proxy");
+                } else {
+                    System.out.println("proxy hostname : " + addr.getHostName());
+                    System.out.println("proxy port : " + addr.getPort());
+
+                    InnerProxy i = new InnerProxy(addr);
+                    proxies.put(i.address(), i);
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         // Populate the HashMap (List of proxies)
         InnerProxy i = new InnerProxy(new InetSocketAddress("webcache1.example.com", 8080));
-        proxies.put(i.address(), i);
-        i = new InnerProxy(new InetSocketAddress("webcache2.example.com", 8080));
-        proxies.put(i.address(), i);
-        i = new InnerProxy(new InetSocketAddress("webcache3.example.com", 8080));
         proxies.put(i.address(), i);
     }
 
@@ -100,22 +122,16 @@ public class MyProxySelector extends ProxySelector {
         if (uri == null || sa == null || ioe == null) {
             throw new IllegalArgumentException("Arguments can't be null.");
         }
-                
-                /*
-                 * Let's lookup for the proxy 
-                 */
+
+        // Let's lookup for the proxy
         InnerProxy p = proxies.get(sa);
         if (p != null) {
-                                /*
-                                 * It's one of ours, if it failed more than 3 times
-                                 * let's remove it from the list.
-                                 */
+            // It's one of ours, if it failed more than 3 times
+            // let's remove it from the list.
             if (p.failed() >= 3)
                 proxies.remove(sa);
         } else {
-                                /*
-                                 * Not one of ours, let's delegate to the default.
-                                 */
+            // Not one of ours, let's delegate to the default.
             if (defsel != null)
                 defsel.connectFailed(uri, sa, ioe);
         }
